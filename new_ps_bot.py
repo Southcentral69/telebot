@@ -10,7 +10,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from dotenv import load_dotenv
 from aiogram.client.default import DefaultBotProperties
 load_dotenv()
-
+#ffgfg
 # Загружаем токены из переменных окружения
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
