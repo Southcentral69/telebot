@@ -9,16 +9,33 @@ from aiogram.filters import CommandStart
 from aiogram.fsm.storage.memory import MemoryStorage
 from dotenv import load_dotenv
 from aiogram.client.default import DefaultBotProperties
+
+# Загрузка .env
 load_dotenv()
-#ffgfg
-# Загружаем токены из переменных окружения
+
+# Получение токенов
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
+# Проверка токенов
+if not BOT_TOKEN:
+    raise ValueError("❌ BOT_TOKEN не найден! Проверь переменные окружения Railway.")
+if not OPENROUTER_API_KEY:
+    raise ValueError("❌ OPENROUTER_API_KEY не найден!")
+
+print("✅ Переменные окружения загружены.")
+print("BOT_TOKEN начинается с:", BOT_TOKEN[:10])  # Покажи только часть для проверки
+
 # Логирование
 logging.basicConfig(level=logging.INFO)
+
+# Инициализация бота
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher(storage=MemoryStorage())
+
+
+# Логирование
+
 
 # Словарь для хранения языка
 user_languages = {}
