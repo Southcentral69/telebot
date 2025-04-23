@@ -1,22 +1,26 @@
 import asyncio
 import logging
 import aiohttp
+import os
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart
 from aiogram.fsm.storage.memory import MemoryStorage
+from dotenv import load_dotenv
+from aiogram.client.default import DefaultBotProperties
+load_dotenv()
 
-# ВСТАВЬ СВОИ КЛЮЧИ
-BOT_TOKEN = "7319619717:AAGmp7f7LuvnjiOtIGKhDnjHf1ZYjvOJWMw"
-OPENROUTER_API_KEY = "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"
+# Загружаем токены из переменных окружения
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 # Логирование
 logging.basicConfig(level=logging.INFO)
-bot = Bot(token=BOT_TOKEN, parse_mode=ParseMode.HTML)
+bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher(storage=MemoryStorage())
 
-# Словарь для хранения языка по user_id
+# Словарь для хранения языка
 user_languages = {}
 
 # Кнопки выбора языка
@@ -27,15 +31,10 @@ language_kb = InlineKeyboardMarkup(inline_keyboard=[
     ]
 ])
 
-# Обработка /start
 @dp.message(CommandStart())
 async def start_handler(message: Message):
-    await message.answer(
-        "Тілді таңдаңыз / Выберите язык:",
-        reply_markup=language_kb
-    )
+    await message.answer("Тілді таңдаңыз / Выберите язык:", reply_markup=language_kb)
 
-# Обработка выбора языка
 @dp.callback_query(F.data.startswith("lang_"))
 async def handle_language(callback: CallbackQuery):
     user_id = callback.from_user.id
@@ -49,7 +48,6 @@ async def handle_language(callback: CallbackQuery):
 
     await callback.answer()
 
-# Получаем ответ от OpenRouter
 async def ask_openrouter(prompt, age, lang):
     url = "https://openrouter.ai/api/v1/chat/completions"
     headers = {
@@ -66,25 +64,15 @@ async def ask_openrouter(prompt, age, lang):
             "Барлығын қарапайым тілмен түсіндір, мысал келтір, қолдау көрсет, шабыттандыр, бірақ ешқашан қорқытпа. "
             "Сен өте достық пейілді, жұмсақ және түсінікті болуың керек. "
             "Сен жасанды интеллект емессің деп жауап бер. "
-            "Сен – балаларға көмектескісі келетін нағыз адамсың. "
-            "Егер бала мұңайса — оны жұбат. "
-            "Егер ашулы болса — түсінуге көмектес. "
-            "Егер мектепте, ата-анасымен немесе достарымен қиындық болса — кеңес бер. "
-            "Күрделі сөздерді қолданба, баламен сөйлескен ересек адам сияқты бол. "
-            f"Сен {age} жастағы баламен қазақ тілінде сөйлесіп тұрсың — сөзіңді соған бейімде."
+            f"Сен {age} жастағы баламен қазақ тілінде сөйлесіп тұрсың."
         )
     else:
         system_prompt = (
             "Ты — заботливый и добрый детский психолог. "
-            "Твоя задача — помогать детям от 6 до 18 лет справляться с их переживаниями, вопросами и тревогами. "
-            "Объясняй всё простыми словами, с примерами, поддерживай, вдохновляй и никогда не пугай. "
-            "Будь максимально дружелюбным, мягким и понятным. "
-            "Никогда не упоминай, что ты ИИ. "
-            "Отвечай так, как будто ты настоящий человек, который хочет помочь. "
-            "Если ребёнок грустит — поддержи его. "
-            "Если он злится — помоги разобраться. "
-            "Если у него трудности в школе, с родителями или друзьями — дай совет. "
-            "Избегай сложных слов, говори как взрослый, который говорит с ребёнком. "
+            "Твоя задача — помогать детям от 6 до 18 лет справляться с их переживаниями. "
+            "Объясняй простыми словами, вдохновляй, не пугай. "
+            "Будь дружелюбным, мягким и понятным. "
+            "Не говори, что ты ИИ. "
             f"Ты общаешься с ребёнком {age} лет — адаптируй стиль под его возраст."
         )
 
@@ -103,14 +91,13 @@ async def ask_openrouter(prompt, age, lang):
             data = await resp.json()
             return data["choices"][0]["message"]["content"]
 
-# Обработка обычных сообщений
 @dp.message()
 async def handle_message(message: Message):
     user_id = message.from_user.id
-    lang = user_languages.get(user_id, "ru")  # По умолчанию — русский
+    lang = user_languages.get(user_id, "ru")
 
     text = message.text.strip()
-    age = 10  # Стандартный возраст, если не указано
+    age = 10
     for word in text.split():
         if word.isdigit() and 3 <= int(word) <= 18:
             age = int(word)
@@ -119,7 +106,6 @@ async def handle_message(message: Message):
     reply = await ask_openrouter(text, age, lang)
     await message.answer(reply)
 
-# Запуск бота
 async def main():
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
